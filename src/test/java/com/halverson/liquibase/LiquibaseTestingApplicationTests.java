@@ -6,54 +6,39 @@ import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
-import liquibase.Scope;
-import liquibase.command.CommandScope;
-import liquibase.database.Database;
-import liquibase.database.DatabaseFactory;
-import liquibase.database.jvm.JdbcConnection;
-import liquibase.resource.ClassLoaderResourceAccessor;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.ClassRule;
 import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.containers.PostgreSQLContainer;
 
+import javax.sql.DataSource;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Clob;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @Slf4j
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@ImportTestcontainers
 class LiquibaseTestingApplicationTests {
 
-    private static Connection connection;
-
-    @BeforeAll
-    static void beforeAll() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1", "sa", "");
-    }
-
-    @AfterAll
-    static void afterAll() throws SQLException {
-        if (connection != null) {
-            connection.close();
-        }
-    }
+    @Autowired
+    DataSource dataSource;
 
     @Test
     @Order(1)
     void runLiquibase() throws Exception {
         log.info("Running Liquibase...");
-        Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection));
-        Scope.child(Scope.Attr.resourceAccessor, new ClassLoaderResourceAccessor(), () -> {
-            CommandScope update = new CommandScope("update");
-            update.addArgumentValue("changelogFile", "db/changelog/root.xml");
-            update.addArgumentValue("database", database);
-            update.execute();
-        });
-
-        log.info("Running Liquibase...DONE");
     }
 
     @Test
@@ -67,13 +52,13 @@ class LiquibaseTestingApplicationTests {
 
         boolean needToFail = false;
 
-        try (Statement statement = connection.createStatement()) {
-            ResultSet resultSet = statement.executeQuery("SELECT ID, DATA FROM TABLE_WITH_CLOB");
+        try (Statement statement = dataSource.getConnection().createStatement()) {
+            ResultSet resultSet = statement.executeQuery("SELECT id, data FROM table_with_clob");
 
             while (resultSet.next()) {
-                Integer id = resultSet.getInt("ID");
-                Clob clob = resultSet.getClob("DATA");
-                JsonNode jsonNode = objectMapper.readTree(clob.getAsciiStream());
+                Integer id = resultSet.getInt("id");
+                String data = resultSet.getString("data");
+                JsonNode jsonNode = objectMapper.readTree(data.getBytes());
                 ProcessingReport report = jsonSchema.validate(jsonNode);
                 if (report.isSuccess()) {
                     log.info("ID # {} JSON is valid according to the schema.", id);
