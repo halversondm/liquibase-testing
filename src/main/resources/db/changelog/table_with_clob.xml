@@ -4,10 +4,10 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="create_table_with_clob_1" author="dan" dbms="postgresql">
+    <changeSet id="create_table_with_clob_1" author="dan">
         <createTable tableName="TABLE_WITH_CLOB">
             <column name="id" type="integer not null" />
-            <column name="data" type="text" />
+            <column name="data" type="clob" />
             <column name="created_user_id" type="varchar(10)"  />
             <column name="created_timestamp" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" />
             <column name="updated_user_id" type="varchar(10)" />
@@ -16,7 +16,7 @@
         <addPrimaryKey tableName="TABLE_WITH_CLOB" columnNames="id"/>
     </changeSet>
 
-    <changeSet id="insert_table_with_clob_1" author="dan" dbms="postgresql">
+    <changeSet id="insert_table_with_clob_1" author="dan">
         <insert tableName="TABLE_WITH_CLOB">
             <column name="id" valueNumeric="1" />
             <column name="data" valueClobFile="data.json" />
@@ -25,7 +25,7 @@
         </insert>
     </changeSet>
 
-    <changeSet id="insert_table_with_clob_2" author="dan" dbms="postgresql">
+    <changeSet id="insert_table_with_clob_2" author="dan">
         <insert tableName="TABLE_WITH_CLOB">
             <column name="id" valueNumeric="2" />
             <column name="data" valueClobFile="data_2.json" />
